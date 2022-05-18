@@ -1,3 +1,40 @@
+//Base class
+abstract class Component<T extends HTMLElement, U extends HTMLElement> {
+	templetElement: HTMLTemplateElement;
+	hostElement: T;
+	element: U;
+
+	constructor(
+		templetId: string,
+		hostElementId: string,
+		insertAtBegining: boolean,
+		newElementId?: string,
+	) {
+		this.templetElement = document.getElementById(
+			templetId,
+		)! as HTMLTemplateElement;
+		this.hostElement = document.getElementById(hostElementId)! as T;
+
+		const importedNode = document.importNode(this.templetElement.content, true);
+		this.element = importedNode.firstElementChild as U;
+		if (newElementId) {
+			this.element.id = newElementId;
+		}
+
+		this.attach(insertAtBegining);
+	}
+
+	private attach(insertAtBegining: boolean) {
+		this.hostElement.insertAdjacentElement(
+			insertAtBegining ? 'afterbegin' : 'beforeend',
+			this.element,
+		);
+	}
+
+	abstract configure(): void			//inheritated methods should be available
+	abstract renderContent(): void
+}
+
 // storing different states
 enum ProjectStatus {
 	Active,
@@ -15,7 +52,7 @@ class Project {
 	) {}
 }
 
-type Listener = (items: Project[]) => void
+type Listener = (items: Project[]) => void;
 
 // State manager class
 class ProjectState {
@@ -116,44 +153,43 @@ function AutoBind(_: any, _2: string, descriptor: PropertyDescriptor) {
 }
 
 // RenderList
-class ProjectList {
-	templetElement: HTMLTemplateElement;
-	hostElement: HTMLDivElement;
-	element: HTMLElement;
+class ProjectList extends Component<HTMLDivElement, HTMLElement> {
 	assignedProjects: Project[];
 
 	constructor(private type: 'active' | 'finished') {
-		this.templetElement = document.getElementById(
-			'project-list',
-		)! as HTMLTemplateElement;
-		this.hostElement = document.getElementById('app')! as HTMLDivElement;
+		super('project-list', 'app',false,`${type}-projects` )
 		this.assignedProjects = [];
 
-		//fetching document fragements from templetElemt, with all levels of nesting
-		const importedNode = document.importNode(this.templetElement.content, true);
-		this.element = importedNode.firstElementChild as HTMLElement;
-		this.element.id = `${this.type}-projects`;
-
-		projectState.addListener((projects: Project[]) => {
-			const relevantProjects = projects.filter(prj => {
-				if (this.type === 'active') {
-					return prj.status === ProjectStatus.Active
-				}
-				return prj.status === ProjectStatus.Finsihed
-			})
-			this.assignedProjects = relevantProjects;
-			this.renderProjects();
-		});
-		this.attach();
+		this.configure()
 		this.renderContent();
 	}
 
+	configure(): void {
+		projectState.addListener((projects: Project[]) => {
+			const relevantProjects = projects.filter((prj) => {
+				if (this.type === 'active') {
+					return prj.status === ProjectStatus.Active;
+				}
+				return prj.status === ProjectStatus.Finsihed;
+			});
+			this.assignedProjects = relevantProjects;
+			this.renderProjects();
+		});
+	}
+	
+	renderContent() {
+		const listId = `${this.type}-projects-list`;
+		this.element.querySelector('ul')!.id = listId;
+		this.element.querySelector('h2')!.textContent =
+			this.type.toUpperCase() + ' PROJECTS';
+	}
+	
 	private renderProjects() {
 		const listEl = document.getElementById(
 			`${this.type}-projects-list`,
 		)! as HTMLUListElement;
 		// Solve duplication error
-		listEl.innerHTML = ''
+		listEl.innerHTML = '';
 		for (const prjItem of this.assignedProjects) {
 			const listItem = document.createElement('li');
 			listItem.textContent = prjItem.title;
@@ -161,37 +197,17 @@ class ProjectList {
 		}
 	}
 
-	private renderContent() {
-		const listId = `${this.type}-projects-list`;
-		this.element.querySelector('ul')!.id = listId;
-		this.element.querySelector('h2')!.textContent =
-			this.type.toUpperCase() + ' PROJECTS';
-	}
 
-	private attach() {
-		this.hostElement.insertAdjacentElement('beforeend', this.element);
-	}
 }
 
-class ProjectInput {
-	templetElement: HTMLTemplateElement;
-	hostElement: HTMLDivElement;
-	element: HTMLElement;
+class ProjectInput extends Component<HTMLDivElement,HTMLFormElement >{
 	titleInputElement: HTMLInputElement;
 	discriptionInputElement: HTMLInputElement;
 	peopleInputElement: HTMLInputElement;
 
 	// acess the templet in the html and dispaly it
 	constructor() {
-		this.templetElement = document.getElementById(
-			'project-input',
-		)! as HTMLTemplateElement;
-		this.hostElement = document.getElementById('app')! as HTMLDivElement;
-
-		//fetching document fragements from templetElemt, with all levels of nesting
-		const importedNode = document.importNode(this.templetElement.content, true);
-		this.element = importedNode.firstElementChild as HTMLFormElement;
-		this.element.id = 'user-input';
+		super('project-input','app', true, 'user-input')
 
 		this.titleInputElement = this.element.querySelector(
 			'#title',
@@ -204,8 +220,13 @@ class ProjectInput {
 		)! as HTMLInputElement;
 
 		this.configure();
-		this.attach();
 	}
+
+	configure() {
+		this.element.addEventListener('submit', this.submitHandler);
+	}
+
+	renderContent() {}
 
 	private gatherUserInput(): [string, string, number] | void {
 		const enteredTitle = this.titleInputElement.value;
@@ -248,6 +269,7 @@ class ProjectInput {
 		this.peopleInputElement.value = '';
 	}
 
+	@AutoBind
 	private submitHandler(event: Event) {
 		event.preventDefault();
 		const userInput = this.gatherUserInput();
@@ -258,15 +280,6 @@ class ProjectInput {
 		}
 	}
 
-	@AutoBind
-	private configure() {
-		this.element.addEventListener('submit', this.submitHandler.bind(this));
-	}
-
-	//Rendering
-	private attach() {
-		this.hostElement.insertAdjacentElement('afterbegin', this.element);
-	}
 }
 
 const projInput = new ProjectInput();
