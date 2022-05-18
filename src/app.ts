@@ -1,3 +1,15 @@
+//Drag & Drop
+interface Dragable {
+	dragStartHandler(event: DragEvent): void;
+	dragEndHandler(event: DragEvent): void;
+}
+
+interface DragTarget {
+	dragOverHandler(event: DragEvent): void; // Permits drop
+	dropHandler(event: DragEvent): void; // Reacts to drop
+	dragLeaveHandler(event: DragEvent): void; // Visual feedback to user
+}
+
 //Base class
 abstract class Component<T extends HTMLElement, U extends HTMLElement> {
 	templetElement: HTMLTemplateElement;
@@ -31,8 +43,8 @@ abstract class Component<T extends HTMLElement, U extends HTMLElement> {
 		);
 	}
 
-	abstract configure(): void			//inheritated methods should be available
-	abstract renderContent(): void
+	abstract configure(): void; //inheritated methods should be available
+	abstract renderContent(): void;
 }
 
 // storing different states
@@ -58,18 +70,18 @@ class State<T> {
 	protected listeners: Listener<T>[] = [];
 
 	addListener(listenerFn: Listener<T>) {
-		this.listeners.push(listenerFn)
+		this.listeners.push(listenerFn);
 	}
 }
 
 // State manager class
-class ProjectState extends State<Project>{
+class ProjectState extends State<Project> {
 	private projects: Project[] = [];
 	//Singleton class
 	private static instance: ProjectState;
 
 	private constructor() {
-		super()
+		super();
 	}
 
 	static getInstance() {
@@ -157,19 +169,83 @@ function AutoBind(_: any, _2: string, descriptor: PropertyDescriptor) {
 	return adjustedDescriptor;
 }
 
-// RenderList
-class ProjectList extends Component<HTMLDivElement, HTMLElement> {
-	assignedProjects: Project[];
+class ProjectItem
+	extends Component<HTMLUListElement, HTMLLIElement>
+	implements Dragable
+{
+	private project: Project;
 
-	constructor(private type: 'active' | 'finished') {
-		super('project-list', 'app',false,`${type}-projects` )
-		this.assignedProjects = [];
+	get people() {
+		if (this.project.people === 1) {
+			return '1 person ';
+		}
+		return `${this.project.people} people `;
+	}
 
-		this.configure()
+	constructor(hostId: string, project: Project) {
+		super('single-project', hostId, false, project.id);
+		this.project = project;
+
+		this.configure();
 		this.renderContent();
 	}
 
+	@AutoBind
+	dragStartHandler(event: DragEvent): void {
+		console.log(event);
+	}
+
+	dragEndHandler(_: DragEvent) {
+		console.log('DragEnd');
+	}
+
 	configure(): void {
+		this.element.addEventListener('dragstart', this.dragStartHandler);
+		this.element.addEventListener('dragend', this.dragEndHandler);
+	}
+
+	renderContent(): void {
+		this.element.querySelector('h2')!.textContent = this.project.title;
+		this.element.querySelector('h3')!.textContent = this.people + 'assigned';
+		this.element.querySelector('p')!.textContent = this.project.description;
+	}
+}
+
+// RenderList
+class ProjectList
+	extends Component<HTMLDivElement, HTMLElement>
+	implements DragTarget
+{
+	assignedProjects: Project[];
+
+	constructor(private type: 'active' | 'finished') {
+		super('project-list', 'app', false, `${type}-projects`);
+		this.assignedProjects = [];
+
+		this.configure();
+		this.renderContent();
+	}
+
+	@AutoBind
+	dragOverHandler(_: DragEvent): void {
+		const listEl = this.element.querySelector('ul')!;
+		listEl.classList.add('droppable');
+	}
+
+	dropHandler(_: DragEvent): void {}
+
+	@AutoBind
+	dragLeaveHandler(_: DragEvent): void {
+		const listEl = this.element.querySelector('ul')!;
+		listEl.classList.remove('droppable');
+	}
+
+	configure(): void {
+		this.element.addEventListener('dragover', this.dragOverHandler)
+		this.element.addEventListener('dragleave', this.dragLeaveHandler)
+		this.element.addEventListener('drop', this.dropHandler)
+
+
 		projectState.addListener((projects: Project[]) => {
 			const relevantProjects = projects.filter((prj) => {
 				if (this.type === 'active') {
@@ -181,7 +257,7 @@ class ProjectList extends Component<HTMLDivElement, HTMLElement> {
 			this.renderProjects();
 		});
 	}
-	
+
 	renderContent() {
 		const listId = `${this.type}-projects-list`;
 		this.element.querySelector('ul')!.id = listId;
@@ -196,23 +272,19 @@ class ProjectList extends Component<HTMLDivElement, HTMLElement> {
 		// Solve duplication error
 		listEl.innerHTML = '';
 		for (const prjItem of this.assignedProjects) {
-			const listItem = document.createElement('li');
-			listItem.textContent = prjItem.title;
-			listEl.appendChild(listItem);
+			new ProjectItem(this.element.querySelector('ul')!.id, prjItem);
 		}
 	}
-
-
 }
 
-class ProjectInput extends Component<HTMLDivElement,HTMLFormElement >{
+class ProjectInput extends Component<HTMLDivElement, HTMLFormElement> {
 	titleInputElement: HTMLInputElement;
 	discriptionInputElement: HTMLInputElement;
 	peopleInputElement: HTMLInputElement;
 
 	// acess the templet in the html and dispaly it
 	constructor() {
-		super('project-input','app', true, 'user-input')
+		super('project-input', 'app', true, 'user-input');
 
 		this.titleInputElement = this.element.querySelector(
 			'#title',
@@ -284,7 +356,6 @@ class ProjectInput extends Component<HTMLDivElement,HTMLFormElement >{
 			this.clearInput();
 		}
 	}
-
 }
 
 const projInput = new ProjectInput();
