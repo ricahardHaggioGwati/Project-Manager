@@ -1,7 +1,26 @@
+// storing different states
+enum ProjectStatus {
+	Active,
+	Finsihed,
+}
+
+// Custom project type
+class Project {
+	constructor(
+		public id: string,
+		public title: string,
+		public description: string,
+		public people: number,
+		public status: ProjectStatus,
+	) {}
+}
+
+type Listener = (items: Project[]) => void
+
 // State manager class
 class ProjectState {
-	private listeners: any[] = [];
-	private projects: any[] = [];
+	private listeners: Listener[] = [];
+	private projects: Project[] = [];
 	//Singleton class
 	private static instance: ProjectState;
 
@@ -16,12 +35,13 @@ class ProjectState {
 	}
 
 	addProjects(title: string, discription: string, numberOfPeople: number) {
-		const newProjects = {
-			id: Math.random(), // not a scalable solution
-			title: title,
-			discription: discription,
-			people: numberOfPeople,
-		};
+		const newProjects = new Project(
+			Math.random().toString(),
+			title,
+			discription,
+			numberOfPeople,
+			ProjectStatus.Active,
+		);
 
 		this.projects.push(newProjects);
 		for (const listenerFn of this.listeners) {
@@ -29,7 +49,7 @@ class ProjectState {
 		}
 	}
 
-	addListener(listenerFn: Function) {
+	addListener(listenerFn: Listener) {
 		this.listeners.push(listenerFn);
 	}
 }
@@ -100,7 +120,7 @@ class ProjectList {
 	templetElement: HTMLTemplateElement;
 	hostElement: HTMLDivElement;
 	element: HTMLElement;
-	assignedProjects: any[];
+	assignedProjects: Project[];
 
 	constructor(private type: 'active' | 'finished') {
 		this.templetElement = document.getElementById(
@@ -114,8 +134,14 @@ class ProjectList {
 		this.element = importedNode.firstElementChild as HTMLElement;
 		this.element.id = `${this.type}-projects`;
 
-		projectState.addListener((projects: any[]) => {
-			this.assignedProjects = projects;
+		projectState.addListener((projects: Project[]) => {
+			const relevantProjects = projects.filter(prj => {
+				if (this.type === 'active') {
+					return prj.status === ProjectStatus.Active
+				}
+				return prj.status === ProjectStatus.Finsihed
+			})
+			this.assignedProjects = relevantProjects;
 			this.renderProjects();
 		});
 		this.attach();
@@ -126,6 +152,8 @@ class ProjectList {
 		const listEl = document.getElementById(
 			`${this.type}-projects-list`,
 		)! as HTMLUListElement;
+		// Solve duplication error
+		listEl.innerHTML = ''
 		for (const prjItem of this.assignedProjects) {
 			const listItem = document.createElement('li');
 			listItem.textContent = prjItem.title;
