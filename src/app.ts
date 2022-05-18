@@ -52,16 +52,25 @@ class Project {
 	) {}
 }
 
-type Listener = (items: Project[]) => void;
+type Listener<T> = (items: T[]) => void;
+
+class State<T> {
+	protected listeners: Listener<T>[] = [];
+
+	addListener(listenerFn: Listener<T>) {
+		this.listeners.push(listenerFn)
+	}
+}
 
 // State manager class
-class ProjectState {
-	private listeners: Listener[] = [];
+class ProjectState extends State<Project>{
 	private projects: Project[] = [];
 	//Singleton class
 	private static instance: ProjectState;
 
-	private constructor() {}
+	private constructor() {
+		super()
+	}
 
 	static getInstance() {
 		if (this.instance) {
@@ -84,10 +93,6 @@ class ProjectState {
 		for (const listenerFn of this.listeners) {
 			listenerFn(this.projects.slice()); // pass a copy of projects
 		}
-	}
-
-	addListener(listenerFn: Listener) {
-		this.listeners.push(listenerFn);
 	}
 }
 
@@ -183,7 +188,7 @@ class ProjectList extends Component<HTMLDivElement, HTMLElement> {
 		this.element.querySelector('h2')!.textContent =
 			this.type.toUpperCase() + ' PROJECTS';
 	}
-	
+
 	private renderProjects() {
 		const listEl = document.getElementById(
 			`${this.type}-projects-list`,
