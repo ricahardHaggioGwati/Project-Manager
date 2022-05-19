@@ -1,5 +1,6 @@
-namespace App {
-    type Listener<T> = (items: T[]) => void;
+import {ProjectStatus, Project} from '../models/project'
+
+type Listener<T> = (items: T[]) => void;
     
     class State<T> {
 		protected listeners: Listener<T>[] = [];
@@ -56,4 +57,3 @@ namespace App {
 
 	//Creating aglobal instance of ProjectState
 	export const projectState = ProjectState.getInstance();
-}
