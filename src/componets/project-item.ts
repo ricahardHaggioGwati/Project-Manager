@@ -1,9 +1,4 @@
-/// <reference path="base-component.ts"/>
-///<reference path="../decorators/autobind.ts"/>
-///<reference path="../models/project.ts"/>
-///<reference path="../models/drag-drop.ts"/>
-
-import { Component } from "base-component.js"
+import { Component } from "./base-component.js"
 import { AutoBind } from "../decorators/autobind.js"
 import {Project} from "../models/project.js"
 import {Dragable} from "../models/drag-drop.js"

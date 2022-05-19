@@ -1,6 +1,6 @@
-import { Component } from "base-component.js"
-import {AutoBind} from "../decorators/autobind.js"
+import { Component } from "./base-component.js"
 import { validate, Validatable } from "../util/validation.js"
+import {AutoBind} from "../decorators/autobind.js"
 import { projectState } from "../state/project-state.js"
 
 

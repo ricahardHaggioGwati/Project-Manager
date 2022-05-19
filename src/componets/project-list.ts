@@ -1,12 +1,9 @@
-
-///<reference path="../models/drag-drop.ts"/>
-
-import { Component } from "base-component.js"
+import { Component } from "./base-component.js"
 import { AutoBind } from "../decorators/autobind.js"
 import { projectState } from "../state/project-state.js"
 import {ProjectStatus, Project} from "../models/project.js"
 import { DragTarget } from "../models/drag-drop.js"
-import {ProjectItem} from "project-item.js"
+import {ProjectItem} from "./project-item.js"
 
 
     export class ProjectList
