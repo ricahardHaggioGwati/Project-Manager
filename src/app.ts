@@ -102,6 +102,18 @@ class ProjectState extends State<Project> {
 		);
 
 		this.projects.push(newProjects);
+		this.updateListeners()
+	} 
+
+	moveProgect(projId: string, newState: ProjectStatus) {
+		const project = this.projects.find(pr => pr.id === projId)
+		if (project && project.status !== newState) {
+			project.status = newState
+			this.updateListeners()
+		}
+	}
+
+	private updateListeners() {
 		for (const listenerFn of this.listeners) {
 			listenerFn(this.projects.slice()); // pass a copy of projects
 		}
@@ -192,7 +204,8 @@ class ProjectItem
 
 	@AutoBind
 	dragStartHandler(event: DragEvent): void {
-		console.log(event);
+		event.dataTransfer!.setData('text/plain', this.project.id);
+		event.dataTransfer!.effectAllowed = 'move';
 	}
 
 	dragEndHandler(_: DragEvent) {
@@ -227,12 +240,22 @@ class ProjectList
 	}
 
 	@AutoBind
-	dragOverHandler(_: DragEvent): void {
-		const listEl = this.element.querySelector('ul')!;
-		listEl.classList.add('droppable');
+	dragOverHandler(event: DragEvent): void {
+		if (event.dataTransfer && event.dataTransfer.types[0] === 'text/plain') {
+			event.preventDefault();
+			const listEl = this.element.querySelector('ul')!;
+			listEl.classList.add('droppable');
+		}
 	}
 
-	dropHandler(_: DragEvent): void {}
+	@AutoBind
+	dropHandler(event: DragEvent): void {
+		const prjId = event.dataTransfer!.getData('text/plain');
+		projectState.moveProgect(
+			prjId,
+			this.type === 'active' ? ProjectStatus.Active : ProjectStatus.Finsihed,
+		);
+	}
 
 	@AutoBind
 	dragLeaveHandler(_: DragEvent): void {
@@ -241,10 +264,9 @@ class ProjectList
 	}
 
 	configure(): void {
-		this.element.addEventListener('dragover', this.dragOverHandler)
-		this.element.addEventListener('dragleave', this.dragLeaveHandler)
-		this.element.addEventListener('drop', this.dropHandler)
-
+		this.element.addEventListener('dragover', this.dragOverHandler);
+		this.element.addEventListener('dragleave', this.dragLeaveHandler);
+		this.element.addEventListener('drop', this.dropHandler);
 
 		projectState.addListener((projects: Project[]) => {
 			const relevantProjects = projects.filter((prj) => {
