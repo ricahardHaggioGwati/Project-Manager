@@ -1,5 +1,5 @@
-import { ProjectList } from './componets/project-list.js'; // Grouping import * as PrjList "./componets/project-list.js"
-import { ProjectInput } from './componets/project-input.js'; // Alias name import {ProjectInput as Input}
+import { ProjectList } from './componets/project-list'; // Grouping import * as PrjList "./componets/project-list.js"
+import { ProjectInput } from './componets/project-input'; // Alias name import {ProjectInput as Input}
 // you can user default export
 
 //Base class
